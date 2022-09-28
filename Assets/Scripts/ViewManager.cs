@@ -4,6 +4,8 @@ using UnityEngine;
 
 using Photon.Pun;
 
+using TMPro;
+
 public class ViewManager : MonoBehaviour, IPunObservable
 {
     // Callibration data for primary coord space
@@ -30,6 +32,22 @@ public class ViewManager : MonoBehaviour, IPunObservable
     public Vector4 positionAfterTrans;
     public Quaternion rotationAfterTrans;
     public Vector3 newPosition;
+
+    // World space coord
+    public Vector3 worldPosition;
+
+    public GameObject logger;
+
+    public void Update()
+    {
+        this.worldPosition = this.gameObject.transform.position;
+
+        this.logger = GameObject.FindGameObjectsWithTag("Logger")[0];
+
+        string temp = "(" + this.worldPosition.x + ", " + this.worldPosition.y + ", " + this.worldPosition.z + ")";
+
+        this.logger.GetComponent<TextMeshPro>().text = temp;
+    }
 
     // Called by each client with a view of the object multiple times per frame.
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -67,7 +85,7 @@ public class ViewManager : MonoBehaviour, IPunObservable
             // Update this game object's position with the new position data. This will
             // move the game object on the secondary client's screen based on how the
             // master client is moving it.
-            this.gameObject.transform.position = this.newPosition;
+            this.gameObject.transform.position = this.currentPosition; //this.newPosition;
             this.gameObject.transform.rotation = this.secondaryCallibrationRotation * this.currentRotation;
         }
     }

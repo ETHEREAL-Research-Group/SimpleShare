@@ -6,6 +6,7 @@ TagManager:
   tags:
   - SharedCube
   - UnsharedCube
+  - Logger
   layers:
   - Default
   - TransparentFX

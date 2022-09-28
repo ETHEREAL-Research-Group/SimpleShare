@@ -43,3 +43,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4987ac7e722d806439cf250747007a43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  unsharedCubePrefab: {fileID: 3266776042411160804, guid: 491569a898c946b4f8fd5b21e5eeb632, type: 3}
+  callibrationCube: {fileID: 0}
+  callibrationPosition: {x: 0, y: 0, z: 0}
+  callibrationRotation: {x: 0, y: 0, z: 0, w: 0}
+  sharedCubePrefab: {fileID: 1312650464278089632, guid: f71f2484ed2b5ec489da479067ef094c, type: 3}
+  sharedCube: {fileID: 0}

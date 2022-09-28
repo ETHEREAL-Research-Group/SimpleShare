@@ -2,22 +2,33 @@ using UnityEngine;
 
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
 
 namespace SimpleShare
 {
     public class PUNManager : MonoBehaviourPunCallbacks
     {
+        #region Public Fields
+
+        // A reference to the Unshared Cube prefab
         public GameObject unsharedCubePrefab;
 
+        // A reference to an instantiated Unshared Cube
         public GameObject callibrationCube;
 
         public Vector3 callibrationPosition;
 
         public Quaternion callibrationRotation;
 
+        // A reference to the Shared Cube prefab
         public GameObject sharedCubePrefab;
 
+        // A reference to an instantiated Shared Cube
         public GameObject sharedCube;
+
+        public GameObject testCube;
+
+        #endregion
 
         #region MonoBehaviour Callbacks
 
@@ -59,8 +70,15 @@ namespace SimpleShare
         {
             Debug.Log("PUN: OnJoinedRoom() was called.");
 
+            var logger = GameObject.FindGameObjectsWithTag("Logger")[0];
+
+            string temp = "Connected.";
+
+            logger.GetComponent<TextMeshPro>().text = temp;
+
+
             // Instantiate a callibration cube for this client.
-            this.callibrationCube = Instantiate(this.unsharedCubePrefab, new Vector3(0.0f, 0.0f, 1.0f), Quaternion.identity);
+            //this.callibrationCube = Instantiate(this.unsharedCubePrefab, new Vector3(0.0f, 0.0f, 1.0f), Quaternion.identity);
         }
 
         #endregion
@@ -109,16 +127,17 @@ namespace SimpleShare
         public void Callibrate()
         {
             // This button only works for the master client
-            if (PhotonNetwork.IsMasterClient && this.callibrationCube.active)
+            if (PhotonNetwork.IsMasterClient) // && this.callibrationCube.active)
             {
                 // Save the current position of this client's callibration cube
-                this.callibrationPosition = this.callibrationCube.transform.position;
+                //this.callibrationPosition = this.callibrationCube.transform.position;
 
                 // Save the current rotation of this client's callibration cube
-                this.callibrationRotation = this.callibrationCube.transform.rotation;
+                //this.callibrationRotation = this.callibrationCube.transform.rotation;
 
                 // Generate a new shared cube for both clients at this client's callibration positon
-                this.sharedCube = PhotonNetwork.Instantiate(this.sharedCubePrefab.name, this.callibrationPosition, this.callibrationRotation, 0);
+                //this.sharedCube = PhotonNetwork.Instantiate(this.sharedCubePrefab.name, this.callibrationPosition, this.callibrationRotation, 0);
+                this.sharedCube = PhotonNetwork.Instantiate(this.testCube.name, new Vector3(0.0f, 0.0f, 1.0f), Quaternion.identity, 0);
 
                 // Call for all client's connected to remove their callibration cubes from the scene (no longer needed)
                 // This method belongs to the ViewManager on the SharedCube game object as an RPC requires a PhotonView
