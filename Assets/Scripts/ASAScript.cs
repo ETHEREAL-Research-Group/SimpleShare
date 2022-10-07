@@ -49,6 +49,8 @@ public class ASAScript : MonoBehaviour
     {
         // Subscribe to callbacks about locating spatial anchors
         spatialAnchorManager.AnchorLocated += SpatialAnchorManager_AnchorLocated;
+
+        debugLog.text += "Subscribed to ASA locating.\n";
     }
 
     #endregion
@@ -177,8 +179,13 @@ public class ASAScript : MonoBehaviour
             // Create a watcher for the spatial anchor with id
             AnchorLocateCriteria anchorLocateCriteria = new AnchorLocateCriteria();
             anchorLocateCriteria.Identifiers = ids.ToArray();
-            debugLog.text += "Identifiers: " + anchorLocateCriteria.Identifiers.ToString() + "\n";
+            //debugLog.text += "Identifiers: " + anchorLocateCriteria.Identifiers.ToString() + "\n";
             CloudSpatialAnchorWatcher watcher = spatialAnchorManager.Session.CreateWatcher(anchorLocateCriteria);
+
+            if (watcher != null)
+            {
+                debugLog.text += "Watcher created succesfully. Watching..\n";
+            }
         }
         else
         {

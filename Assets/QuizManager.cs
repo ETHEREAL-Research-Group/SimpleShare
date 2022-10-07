@@ -41,6 +41,8 @@ public class QuizManager : MonoBehaviour, IPunObservable
                 buttonTwo.SetActive(false);
 
                 buttonOneText.text = "";
+
+                PhotonView.Get(this).RPC("changeButtonState", RpcTarget.Others, true);
             }
             else
             {
@@ -51,6 +53,8 @@ public class QuizManager : MonoBehaviour, IPunObservable
                 buttonTwo.SetActive(true);
 
                 buttonOneText.text = "Yes";
+
+                PhotonView.Get(this).RPC("changeButtonState", RpcTarget.Others, false);
             }
         }
     }
@@ -60,6 +64,8 @@ public class QuizManager : MonoBehaviour, IPunObservable
         if (!PhotonNetwork.IsMasterClient)
         {
             textOutput.text = "Correct!";
+
+            PhotonView.Get(this).RPC("changeTextState", RpcTarget.Others, true);
         }
     }
 
@@ -90,11 +96,32 @@ public class QuizManager : MonoBehaviour, IPunObservable
     {
         if (tryAgain)
         {
-            // Do something
+            textOutput.text = "Try again!";
+
+            buttonTwo.SetActive(false);
+
+            buttonOneText.text = "";
         }
         else
         {
-            // Do something else
+            textOutput.text = defaultText;
+
+            buttonTwo.SetActive(true);
+
+            buttonOneText.text = "Yes";
+        }
+    }
+
+    [PunRPC]
+    public void changeTextState(bool correct)
+    {
+        if (correct)
+        {
+            textOutput.text = "Correct!";
+        }
+        else
+        {
+            textOutput.text = defaultText;
         }
     }
 }

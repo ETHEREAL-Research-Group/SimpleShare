@@ -81,19 +81,10 @@ public class PUNManager : MonoBehaviourPunCallbacks
             {
                 GameObject anchorObject = GameObject.FindWithTag("Anchor");
 
-                if (anchorObject == null)
-                {
-                    debugLog.text += "anchorObject not found!\n";
-                }
-
                 Vector3 deltaPosition = quizObject.transform.position - anchorObject.transform.position;
                 Quaternion deltaRotation = Quaternion.Inverse(anchorObject.transform.rotation) * quizObject.transform.rotation;
 
                 PhotonView.Get(quizObject).RPC("updateTransformRPC", RpcTarget.Others, deltaPosition, deltaRotation);
-            }
-            else
-            {
-                debugLog.text += "quizObject not found!\n";
             }
         }
     }
