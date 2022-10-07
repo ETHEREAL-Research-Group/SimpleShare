@@ -4,9 +4,15 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - SharedCube
-  - UnsharedCube
-  - Logger
+  - DebugLog
+  - Bullet
+  - CallibrationObject
+  - ASAManager
+  - SharedObject
+  - Anchor
+  - Shared
+  - Delta
+  - Quiz
   layers:
   - Default
   - TransparentFX

@@ -1,159 +1,263 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 using Photon.Pun;
 using Photon.Realtime;
+
 using TMPro;
+using Microsoft.Azure.SpatialAnchors.Unity;
+using static TMPro.TMP_Compatibility;
 
-namespace SimpleShare
+public class PUNManager : MonoBehaviourPunCallbacks
 {
-    public class PUNManager : MonoBehaviourPunCallbacks
+    #region Fields
+
+    // Slate object with text for displaying debug info
+    public TextMeshProUGUI debugLog;
+
+    // The prefab for the callibration object
+    public GameObject callibrationObjectPrefab;
+
+    // Object used to get a position for the spatial anchor
+    public GameObject callibrationObject;
+
+    // Controls calls to ASA
+    public ASAScript ASAManager;
+
+    // The prefab for the object shared between clients
+    public GameObject sharedObjectPrefab;
+
+    // Object shared between clients
+    public GameObject sharedObject;
+
+    // Handles Photon View calls
+    public SharedObjectManager sharedObjectManager;
+
+    public Vector3 anchorPosition;
+
+    public Quaternion anchorRotation;
+
+    public TextMeshPro anchorText;
+    public TextMeshPro sharedText;
+    public TextMeshPro deltaText;
+
+    bool shared;
+
+    #endregion
+
+    #region MonoBehaviour Callbacks
+
+    public void Awake()
     {
-        #region Public Fields
+        PhotonNetwork.AutomaticallySyncScene = true;
+        shared = false;
+    }
 
-        // A reference to the Unshared Cube prefab
-        public GameObject unsharedCubePrefab;
+    public void Start()
+    {
+        this.debugLog.text = "Application starting.\n";
+    }
 
-        // A reference to an instantiated Unshared Cube
-        public GameObject callibrationCube;
-
-        public Vector3 callibrationPosition;
-
-        public Quaternion callibrationRotation;
-
-        // A reference to the Shared Cube prefab
-        public GameObject sharedCubePrefab;
-
-        // A reference to an instantiated Shared Cube
-        public GameObject sharedCube;
-
-        public GameObject testCube;
-
-        #endregion
-
-        #region MonoBehaviour Callbacks
-
-        public void Awake()
+    public void Update()
+    {
+        if (shared)
         {
-            PhotonNetwork.AutomaticallySyncScene = true;
+            Vector3 deltaPosition = sharedObject.transform.position - callibrationObject.transform.position;
+            Quaternion deltaRotation = Quaternion.Inverse(callibrationObject.transform.rotation) * sharedObject.transform.rotation;
+
+            anchorText.text = "(" + callibrationObject.transform.position.x + ", " + callibrationObject.transform.position.y + ", " + callibrationObject.transform.position.z + ")";
+            sharedText.text = "(" + sharedObject.transform.position.x + ", " + sharedObject.transform.position.y + ", " + sharedObject.transform.position.z + ")";
+            deltaText.text = "(" + deltaPosition.x + ", " + deltaPosition.y  + ", " + deltaPosition.z + ")";
+
+            PhotonView.Get(sharedObject).RPC("setTransformRPC", RpcTarget.Others, deltaPosition, deltaRotation);
         }
 
-        #endregion
-
-        #region PUN Callbacks
-
-        // Called when the client connects to the Master Server and is ready
-        // for matchmaking and other tasks.
-        public override void OnConnectedToMaster()
+        if (!PhotonNetwork.IsMasterClient)
         {
-            //Debug.Log("PUN: OnConnectedToMaster() was called.");
+            GameObject quizObject = GameObject.FindWithTag("Quiz");
 
+            if (quizObject != null)
+            {
+                GameObject anchorObject = GameObject.FindWithTag("Anchor");
+
+                if (anchorObject == null)
+                {
+                    debugLog.text += "anchorObject not found!\n";
+                }
+
+                Vector3 deltaPosition = quizObject.transform.position - anchorObject.transform.position;
+                Quaternion deltaRotation = Quaternion.Inverse(anchorObject.transform.rotation) * quizObject.transform.rotation;
+
+                PhotonView.Get(quizObject).RPC("updateTransformRPC", RpcTarget.Others, deltaPosition, deltaRotation);
+            }
+            else
+            {
+                debugLog.text += "quizObject not found!\n";
+            }
+        }
+    }
+
+    #endregion
+
+    #region PUN Callbacks
+
+    // Called when this client connects to PUN
+    public override void OnConnectedToMaster()
+    {
+        this.debugLog.text += "OnConnectedToMaster() was called. Joining a room...\n";
+        PhotonNetwork.JoinRandomRoom();
+    }
+
+    // Called when this client disconnects from PUN
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        this.debugLog.text += "OnDisconnected() was called with reason: " + cause.ToString() + "\n";
+    }
+
+    // Called when this client fails to join a random room (i.e. room has not been created yet)
+    public override void OnJoinRandomFailed(short returnCode, string message)
+    {
+        this.debugLog.text += "OnJoinRandomFailed() was called. Creating a new room.\n";
+        PhotonNetwork.CreateRoom(null, new RoomOptions());
+    }
+
+    // Called when this client joins a new room
+    public override void OnJoinedRoom()
+    {
+        this.debugLog.text += "Room joined succesfully.\n";
+        Debug.Log("OnJoinedRoom() was called.");
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            CreateCallibrationObject();
+        }
+    }
+
+    #endregion
+
+    #region Methods
+
+    // Method triggered by the Connect button in the scene
+    public void Connect()
+    {
+        this.debugLog.text += "Connecting...\n";
+
+        if (PhotonNetwork.IsConnected)
+        {
             PhotonNetwork.JoinRandomRoom();
         }
-
-        // Called after disconnecting from the Master Server.
-        public override void OnDisconnected(DisconnectCause cause)
+        else
         {
-            Debug.LogFormat("PUN: OnDisconnected() was called by PUN with reason {0}.", cause);
+            PhotonNetwork.ConnectUsingSettings();
         }
-
-        // Called if the client fails to join a random room.
-        public override void OnJoinRandomFailed(short returnCode, string message)
-        {
-            //Debug.Log("PUN: OnJoinRandomFailed() was called.");
-
-            // Create a new room
-            PhotonNetwork.CreateRoom(null, new RoomOptions());
-        }
-
-        // Called if the client successfully joins a room.
-        public override void OnJoinedRoom()
-        {
-            Debug.Log("PUN: OnJoinedRoom() was called.");
-
-            var logger = GameObject.FindGameObjectsWithTag("Logger")[0];
-
-            string temp = "Connected.";
-
-            logger.GetComponent<TextMeshPro>().text = temp;
-
-
-            // Instantiate a callibration cube for this client.
-            //this.callibrationCube = Instantiate(this.unsharedCubePrefab, new Vector3(0.0f, 0.0f, 1.0f), Quaternion.identity);
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        // Connect to PUN.
-        public void Connect()
-        {
-            // Check if already connected to Photon Network
-            if (!PhotonNetwork.IsConnected)
-            {
-                // Connect to Photon Network if not connected already
-                PhotonNetwork.ConnectUsingSettings();
-            }
-            else
-            {
-                Debug.Log("Already connected to PUN!");
-            }
-        }
-
-        // Disconnect from PUN.
-        public void Disconnect()
-        {
-            if (PhotonNetwork.IsConnected)
-            {
-                PhotonNetwork.Disconnect();
-            }
-        }
-
-        // Get PUN connection ping.
-        public void Test()
-        {
-            int ping = PhotonNetwork.GetPing();
-
-            if (ping != null)
-            {
-                Debug.LogFormat("Ping = {0}", ping);
-            }
-            else
-            {
-                Debug.Log("Not connected to PUN.");
-            }
-        }
-
-        public void Callibrate()
-        {
-            // This button only works for the master client
-            if (PhotonNetwork.IsMasterClient) // && this.callibrationCube.active)
-            {
-                // Save the current position of this client's callibration cube
-                //this.callibrationPosition = this.callibrationCube.transform.position;
-
-                // Save the current rotation of this client's callibration cube
-                //this.callibrationRotation = this.callibrationCube.transform.rotation;
-
-                // Generate a new shared cube for both clients at this client's callibration positon
-                //this.sharedCube = PhotonNetwork.Instantiate(this.sharedCubePrefab.name, this.callibrationPosition, this.callibrationRotation, 0);
-                this.sharedCube = PhotonNetwork.Instantiate(this.testCube.name, new Vector3(0.0f, 0.0f, 1.0f), Quaternion.identity, 0);
-
-                // Call for all client's connected to remove their callibration cubes from the scene (no longer needed)
-                // This method belongs to the ViewManager on the SharedCube game object as an RPC requires a PhotonView
-                // component to execute across the newtwork.
-                this.sharedCube.GetComponent<PhotonView>().RPC("RemoveUnsharedCube", RpcTarget.All);
-
-                // Give the secondary client this client's callibration position
-                this.sharedCube.GetComponent<PhotonView>().RPC("SetMasterCallibrationTransform", RpcTarget.All, this.callibrationPosition, this.callibrationRotation);
-            }
-        }
-
-        public void Reset()
-        {
-
-        }
-
-        #endregion
     }
+
+    // Creates a movable game object (only called by the master client)
+    public void CreateCallibrationObject()
+    {
+        // This object is moved around in the scene by the master client to designate a
+        // location for the spatial anchor. Once the callibrationObject is placed, the
+        // master client presses the Callibrate button to save its position (see ASAScript).
+        callibrationObject = Instantiate(callibrationObjectPrefab, new Vector3(0.0f, 0.0f, 0.5f), Quaternion.identity);
+    }
+
+    // For debugging purposes only
+    public void ShareTest()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            sharedObject = PhotonNetwork.Instantiate(sharedObjectPrefab.name, Vector3.zero, Quaternion.identity, 0);
+
+            sharedObjectManager = sharedObject.GetComponent<SharedObjectManager>();
+
+            string testId = "fnisdlfjdsl;fm,smmfdl;s";
+
+            sharedObjectManager.setId(testId);
+        }
+    }
+
+    // Method called by the Share button in the scene
+    public void Share()
+    {
+        // Button only works for the master client if the ASA session has been started
+        if (ASAManager.spatialAnchorManager.IsSessionStarted && PhotonNetwork.IsMasterClient)
+        {
+            debugLog.text += "Sharing spatial anchor ID with secondary client.\n";
+
+            shared = true;
+
+            if (sharedObject == null)
+            {
+                // Create a shared photon object for both clients at the callibrationObject's saved position
+                sharedObject = PhotonNetwork.Instantiate(sharedObjectPrefab.name, callibrationObject.transform.position, callibrationObject.transform.rotation, 0);
+
+                if (sharedObject != null)
+                {
+                    debugLog.text += "sharedObject instantiated by master client.\n";
+                }
+
+                // Pass spatial anchor data to the secondary client
+                sharedObjectManager = sharedObject.GetComponent<SharedObjectManager>();
+
+                if (sharedObjectManager != null)
+                {
+                    debugLog.text += "sharedObjectManager found.\n";
+                }
+
+                setId(ASAManager.createdAnchorIDs[0]);
+
+                // Save anchor position data for the shared object for master client
+                setAnchorTransform(callibrationObject.transform.position, callibrationObject.transform.rotation);
+
+                // Tell the secondary client to make a quiz
+                PhotonView.Get(sharedObject).RPC("spawnQuiz", RpcTarget.Others);
+            }
+            else
+            {
+                debugLog.text += "sharedObject is not null.\n";
+            }
+        }
+        else
+        {
+            debugLog.text += "IsSessionStarted = " + ASAManager.spatialAnchorManager.IsSessionStarted + "\n";
+            debugLog.text += "IsMasterClient = " + PhotonNetwork.IsMasterClient + "\n";
+        }
+    }
+
+    public void setId(string id)
+    {
+        debugLog.text += "setID() was called.\n";
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonView.Get(sharedObject).RPC("setAnchorIdRPC", RpcTarget.Others, id);
+        }
+    }
+
+    public void setAnchorTransform(Vector3 position, Quaternion rotation)
+    {
+        debugLog.text += "setAnchorTransform() was called.\n";
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            debugLog.text += "Setting anchor position for master client: (" + position.x + ", " + position.y + ", " + position.z + ")\n";
+        }
+        else
+        {
+            debugLog.text += "Setting anchor position for secondary client: (" + position.x + ", " + position.y + ", " + position.z + ")\n";
+            debugLog.text += "How did we get here?\n";
+        }
+
+        anchorPosition = position;
+        anchorRotation = rotation;
+    }
+
+    public void ResetButton()
+    {
+        sharedObject.transform.position = callibrationObject.transform.position;
+        sharedObject.transform.rotation = callibrationObject.transform.rotation;
+    }
+
+    #endregion
 }
