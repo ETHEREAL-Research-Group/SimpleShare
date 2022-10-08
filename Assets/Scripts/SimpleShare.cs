@@ -50,31 +50,24 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public void Start()
     {
+        // Toggle debug mode on initially
         debugIsOn = true;
 
+        // Subscribe to spatial anchor location callbacks
         spatialAnchorManager.AnchorLocated += SpatialAnchorManager_AnchorLocated;
 
+        // Subscribe to speech input callbacks
         CoreServices.InputSystem?.RegisterHandler<IMixedRealitySpeechHandler>(this);
 
+        // Connect to PUN server
         PUNSetup();
     }
 
     public void Update()
     {
-        // Update shared object positions
-        foreach (var sharedObject in sharedObjects)
-        {
-            if (sharedObject.GetComponent<PhotonView>().IsMine)
-            {
-                SetPosition(sharedObject);
-            }
-            else
-            {
-                GetPosition(sharedObject);
-            }
-        }
+        // TODO Update this client's shared object positions
 
-        // Update shared object states
+        // TODO Update this client's shared object states?
     }
 
     #endregion
@@ -179,6 +172,9 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     }
 
     // TODO Requires some form of input from user to toggle
+    // Or do we even need the user to move a callibration object?
+    // We could just create callibration objects automatically in front of the user
+    // Feel like this is kind of a hold-over the manual callibration trials
     public void SaveCallibrationTransform()
     {
         if (PhotonNetwork.IsMasterClient)
@@ -266,8 +262,6 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     {
         GameObject newObject = PhotonNetwork.Instantiate(prefab.name, pos, Quaternion.identity, 0);
 
-
-
         sharedObjects.Add(newObject);
         
         return newObject;
@@ -275,7 +269,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public void GetPosition(GameObject sharedObject)
     {
-
+        // TODO not implemented
     }
 
     public void SetPosition(GameObject sharedObject)
@@ -286,19 +280,19 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     [PunRPC]
     public void SetPositionRPC(Transform trans)
     {
-
+        // TODO not implemented
     }
 
     [PunRPC]
     public void SetDeltaTransform()
     {
-
+        // TODO not implemented
     }
 
 
     public void ChangeOwnership()
     {
-
+        // TODO not implemented
     }
 
 }
