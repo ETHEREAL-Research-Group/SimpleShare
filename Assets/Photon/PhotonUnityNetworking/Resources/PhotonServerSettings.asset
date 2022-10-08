@@ -46,6 +46,9 @@ MonoBehaviour:
   - updateTransformRPC
   - changeButtonState
   - changeTextState
+  - SetAnchorID
+  - SetDeltaTransform
+  - SetPositionRPC
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

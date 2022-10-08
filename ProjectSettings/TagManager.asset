@@ -13,6 +13,7 @@ TagManager:
   - Shared
   - Delta
   - Quiz
+  - Debug
   layers:
   - Default
   - TransparentFX
