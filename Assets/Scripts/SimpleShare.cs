@@ -3,18 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
+using UnityEditorInternal;
 
 using Photon.Pun;
 using Photon.Realtime;
 
+using Microsoft.MixedReality.Toolkit;
 using Microsoft.MixedReality.Toolkit.UI;
 using Microsoft.MixedReality.Toolkit.Input;
 
 using Microsoft.Azure.SpatialAnchors.Unity;
 using Microsoft.Azure.SpatialAnchors;
-using UnityEditorInternal;
-using Microsoft.MixedReality.Toolkit;
+using UnityEngine.XR.ARFoundation;
 
+[RequireComponent(typeof(ARSessionOrigin))]
+[RequireComponent(typeof(ARAnchorManager))]
+[RequireComponent(typeof(PhotonView))]
+[RequireComponent(typeof(SpatialAnchorManager))]
 public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 {
     #region Fields
@@ -50,8 +55,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public void Start()
     {
-        // Toggle debug mode on initially
-        debugIsOn = true;
+        // Toggle debug mode off initially
+        debugIsOn = false;
 
         // Subscribe to spatial anchor location callbacks
         spatialAnchorManager.AnchorLocated += SpatialAnchorManager_AnchorLocated;
@@ -124,7 +129,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            SpawnCallibrationObject();
+            SetAnchorTransform();
         }
     }
 
@@ -155,40 +160,36 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     #endregion
 
+    #region Methods
+
     // Connects this client to PUN
-    public void PUNSetup()
+    private void PUNSetup()
     {
          // Connect to PUN server
          PhotonNetwork.ConnectUsingSettings();
-    }
-      
-    // Called by the master cient to spawn a movable callibration object in the scene
-    public void SpawnCallibrationObject()
-    {
-        Vector3 initialPosition = new Vector3(0.0f, 0.0f, 0.5f);
-        Quaternion initialRotation = Quaternion.identity;
-
-        callibrationObject = Instantiate(callibrationObjectPrefab, initialPosition, initialRotation);
     }
 
     // TODO Requires some form of input from user to toggle
     // Or do we even need the user to move a callibration object?
     // We could just create callibration objects automatically in front of the user
     // Feel like this is kind of a hold-over the manual callibration trials
-    public void SaveCallibrationTransform()
+    private void SetAnchorTransform()
     {
-        if (PhotonNetwork.IsMasterClient)
-        {
-            // Prevent anchor from being moved futher
-            callibrationObject.GetComponent<ObjectManipulator>().enabled = false;
-            callibrationObject.GetComponent<NearInteractionGrabbable>().enabled = false;
+        // Create anchor object
+        Vector3 initialPosition = Vector3.zero;
+        Quaternion initialRotation = Quaternion.identity;
+        callibrationObject = Instantiate(callibrationObjectPrefab, initialPosition, initialRotation);
 
-            MasterASASetup();
-        }
+        // Prevent anchor from being moved futher
+        callibrationObject.GetComponent<ObjectManipulator>().enabled = false;
+        callibrationObject.GetComponent<NearInteractionGrabbable>().enabled = false;
+
+        MasterASASetup();
     }
 
     // Starts an ASA session for the master client and creates an anchor at the callibration position.
-    public async void MasterASASetup()
+    // TODO Create 3 anchors instead of 1 oriented in a triangle
+    private async void MasterASASetup()
     {
         await spatialAnchorManager.StartSessionAsync();
 
@@ -230,8 +231,17 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
     }
 
+    // Used by master client to tell the secondary client to connect to ASA and start looking for an anchor.
+    [PunRPC]
+    public void SetAnchorID(List<string> IDs)
+    {
+        createdAnchorIDs = IDs;
+
+        SecondaryASASetup();
+    }
+
     // Starts an ASA session for the secondary client and finds the master client's spatial anchor.
-    public async void SecondaryASASetup()
+    private async void SecondaryASASetup()
     {
         if (!PhotonNetwork.IsMasterClient)
         {
@@ -247,52 +257,17 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
     }
 
-    // Used by master client to tell the secondary client to connect to ASA and start looking for an anchor.
-    [PunRPC]
-    public void SetAnchorID(List<string> IDs)
+    public Transform GetAnchorTransform()
     {
-        createdAnchorIDs = IDs;
-
-        SecondaryASASetup();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            return callibrationObject.transform;
+        }
+        else
+        {
+            return anchorObject.transform;
+        }
     }
 
-    // TODO Add Tag as string argument and use that to find and identify shared objects between clients
-
-    public GameObject SpawnSharedObject(GameObject prefab, string tag, Vector3 pos)
-    {
-        GameObject newObject = PhotonNetwork.Instantiate(prefab.name, pos, Quaternion.identity, 0);
-
-        sharedObjects.Add(newObject);
-        
-        return newObject;
-    }
-
-    public void GetPosition(GameObject sharedObject)
-    {
-        // TODO not implemented
-    }
-
-    public void SetPosition(GameObject sharedObject)
-    {
-        PhotonView.Get(this).RPC("SetPositionRPC", RpcTarget.Others, sharedObject.transform);
-    }
-
-    [PunRPC]
-    public void SetPositionRPC(Transform trans)
-    {
-        // TODO not implemented
-    }
-
-    [PunRPC]
-    public void SetDeltaTransform()
-    {
-        // TODO not implemented
-    }
-
-
-    public void ChangeOwnership()
-    {
-        // TODO not implemented
-    }
-
+    #endregion
 }
