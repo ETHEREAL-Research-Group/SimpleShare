@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEditorInternal;
 
 using Photon.Pun;
 using Photon.Realtime;
@@ -15,6 +14,7 @@ using Microsoft.MixedReality.Toolkit.Input;
 using Microsoft.Azure.SpatialAnchors.Unity;
 using Microsoft.Azure.SpatialAnchors;
 using UnityEngine.XR.ARFoundation;
+using TMPro;
 
 [RequireComponent(typeof(ARSessionOrigin))]
 [RequireComponent(typeof(ARAnchorManager))]
@@ -42,6 +42,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public GameObject debugObjects;
 
+    public TextMeshProUGUI debugLog;
+
     public bool debugIsOn;
 
     #endregion
@@ -55,6 +57,11 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public void Start()
     {
+        anchorObject = null;
+        callibrationObject = null;
+
+        debugLog.text += "Start() was called.\n";
+
         // Toggle debug mode off initially
         debugIsOn = false;
 
@@ -65,7 +72,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         CoreServices.InputSystem?.RegisterHandler<IMixedRealitySpeechHandler>(this);
 
         // Connect to PUN server
-        PUNSetup();
+        //PUNSetup();
     }
 
     public void Update()
@@ -107,26 +114,31 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Called when this client connects to PUN server
     public override void OnConnectedToMaster()
     {
+        debugLog.text += "OnConnectedToMaster() was called.\n";
+
         PhotonNetwork.JoinRandomRoom();
     }
 
     // Called when this client disconnects from PUN
     public override void OnDisconnected(DisconnectCause cause)
     {
-        // Not implemented
+        debugLog.text += "OnDisconnected() was called.\n";
         // Play sound?
-        // Display message?
     }
 
     // Called when this client fails to join a random room (i.e. room has not been created yet)
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
+        debugLog.text += "OnJoinRandomFailed() was called.\n";
+
         PhotonNetwork.CreateRoom(null, new RoomOptions());
     }
 
     // Called when this client joins a new room
     public override void OnJoinedRoom()
     {
+        debugLog.text += "OnJoinedRoom() was called.\n";
+
         if (PhotonNetwork.IsMasterClient)
         {
             SetAnchorTransform();
@@ -141,6 +153,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // to represent the anchor's position.
     private void SpatialAnchorManager_AnchorLocated(object sender, AnchorLocatedEventArgs args)
     {
+        debugLog.text += "SpatialAnchorManager_AnchorLocated() was called.\n";
+
         if (args.Status == LocateAnchorStatus.Located)
         {
             // Create a new game object where the spatial anchor was found (force Unity to use main thread)
@@ -163,10 +177,19 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     #region Methods
 
     // Connects this client to PUN
-    private void PUNSetup()
+    public void PUNSetup()
     {
-         // Connect to PUN server
-         PhotonNetwork.ConnectUsingSettings();
+        debugLog.text += "PUNSetup() was called.\n";
+        
+        // Connect to PUN server
+        if (PhotonNetwork.IsConnected)
+        {
+            PhotonNetwork.JoinRandomRoom();
+        }
+        else
+        {
+            PhotonNetwork.ConnectUsingSettings();
+        }
     }
 
     // TODO Requires some form of input from user to toggle
@@ -175,6 +198,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Feel like this is kind of a hold-over the manual callibration trials
     private void SetAnchorTransform()
     {
+        debugLog.text += "SetAnchorTransform() was called.\n";
+
         // Create anchor object
         Vector3 initialPosition = Vector3.zero;
         Quaternion initialRotation = Quaternion.identity;
@@ -184,13 +209,15 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         callibrationObject.GetComponent<ObjectManipulator>().enabled = false;
         callibrationObject.GetComponent<NearInteractionGrabbable>().enabled = false;
 
-        MasterASASetup();
+        //MasterASASetup();
     }
 
     // Starts an ASA session for the master client and creates an anchor at the callibration position.
     // TODO Create 3 anchors instead of 1 oriented in a triangle
-    private async void MasterASASetup()
+    public async void MasterASASetup()
     {
+        debugLog.text += "MasterASASetup() was called.\n";
+
         await spatialAnchorManager.StartSessionAsync();
 
         CloudNativeAnchor cloudNativeAnchor = callibrationObject.AddComponent<CloudNativeAnchor>();
@@ -217,25 +244,30 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
             bool saveSucceeded = (cloudSpatialAnchor != null);
             if (!saveSucceeded)
             {
+                debugLog.text += "cloudSpatialAnchor did not save successfully.\n";
                 return;
             }
 
             // Keep track of the identifier for the new spatial anchor
             createdAnchorIDs.Add(cloudSpatialAnchor.Identifier);
-            PhotonView.Get(this).RPC("setAnchorID", RpcTarget.Others, createdAnchorIDs);
+            
+            debugLog.text += "Calling SetAnchorID() on secondary client...\n";
+            PhotonView.Get(this).RPC("SetAnchorID", RpcTarget.Others, createdAnchorIDs[0]);
         }
         catch (Exception exception)
         {
-            string temp = "Failed to save spatial anchor " + exception.ToString() + "\n";
+            debugLog.text += "Failed to save spatial anchor " + exception.ToString() + "\n";
             return;
         }
     }
 
     // Used by master client to tell the secondary client to connect to ASA and start looking for an anchor.
     [PunRPC]
-    public void SetAnchorID(List<string> IDs)
+    public void SetAnchorID(string ID)
     {
-        createdAnchorIDs = IDs;
+        debugLog.text += "SetAnchorID() was called.\n";
+
+        createdAnchorIDs.Add(ID);
 
         SecondaryASASetup();
     }
@@ -243,6 +275,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Starts an ASA session for the secondary client and finds the master client's spatial anchor.
     private async void SecondaryASASetup()
     {
+        debugLog.text += "SecondaryASASetup() was called.\n";
+
         if (!PhotonNetwork.IsMasterClient)
         {
             await spatialAnchorManager.StartSessionAsync();
@@ -253,6 +287,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
                 AnchorLocateCriteria anchorLocateCriteria = new AnchorLocateCriteria();
                 anchorLocateCriteria.Identifiers = createdAnchorIDs.ToArray();
                 CloudSpatialAnchorWatcher watcher = spatialAnchorManager.Session.CreateWatcher(anchorLocateCriteria);
+
+                debugLog.text += "Locating spatial anchor...\n";
             }
         }
     }
@@ -261,11 +297,25 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            return callibrationObject.transform;
+            if (callibrationObject == null)
+            {
+                return null;
+            }
+            else
+            {
+                return callibrationObject.transform;
+            }
         }
         else
         {
-            return anchorObject.transform;
+            if (anchorObject == null)
+            {
+                return null;
+            }
+            else
+            {
+                return anchorObject.transform;
+            }
         }
     }
 

@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using TMPro;
+
 [RequireComponent(typeof(PhotonView))]
 public class SimpleShareSync : MonoBehaviour, IPunObservable
 {
@@ -10,12 +12,16 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
 
     private Transform anchorTransform;
 
+    public TextMeshProUGUI debugLog;
+
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
         if (anchorTransform != null)
         {
             if (stream.IsWriting)
             {
+                debugLog.text = "stream.IsWriting";
+
                 Vector3 deltaPosition = anchorTransform.position - gameObject.transform.position;
                 Quaternion deltaRotation = Quaternion.Inverse(gameObject.transform.rotation) * anchorTransform.rotation;
 
@@ -24,11 +30,20 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
             }
             else
             {
+                debugLog.text = "stream.IsReading";
+
                 Vector3 deltaPosition = (Vector3)stream.ReceiveNext();
                 Quaternion deltaRotation = (Quaternion)stream.ReceiveNext();
 
                 gameObject.transform.position = anchorTransform.position + deltaPosition;
                 gameObject.transform.rotation = anchorTransform.rotation * deltaRotation;
+
+                if (gameObject.transform.position == deltaPosition || gameObject.transform.rotation == deltaRotation)
+                {
+                    anchorTransform = GameObject.FindWithTag("SimpleShare").GetComponent<SimpleShare>().GetAnchorTransform();
+                    gameObject.transform.position = anchorTransform.position + deltaPosition;
+                    gameObject.transform.rotation = anchorTransform.rotation * deltaRotation;
+                }
             }
         }
     }
@@ -45,7 +60,13 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
     {
         if (anchorTransform == null)
         {
+            debugLog.text = "anchorTransform == null";
             anchorTransform = GameObject.FindWithTag("SimpleShare").GetComponent<SimpleShare>().GetAnchorTransform();
+
+            if (anchorTransform != null)
+            {
+                debugLog.text = "anchorTransform != null";
+            }
         }
     }
 }
