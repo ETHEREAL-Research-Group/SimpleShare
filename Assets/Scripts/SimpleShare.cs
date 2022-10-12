@@ -1,21 +1,20 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using UnityEngine;
+using UnityEngine.XR.ARFoundation;
 
 using Photon.Pun;
 using Photon.Realtime;
 
 using Microsoft.MixedReality.Toolkit;
-using Microsoft.MixedReality.Toolkit.UI;
 using Microsoft.MixedReality.Toolkit.Input;
 
 using Microsoft.Azure.SpatialAnchors.Unity;
 using Microsoft.Azure.SpatialAnchors;
-using UnityEngine.XR.ARFoundation;
+
 using TMPro;
-using System.Threading.Tasks;
 
 [RequireComponent(typeof(ARSessionOrigin))]
 [RequireComponent(typeof(ARAnchorManager))]
@@ -25,22 +24,28 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 {
     #region Fields
 
+    // This client's spatial anchor transform component
     private Transform anchorTransform;
 
-    private Transform deltaTransform;
-
+    // This client's right, up, and forward vectors (wrt to master client)
     private List<Vector3> axes;
 
+    // ASA's SpatialAnchorManager component
     public SpatialAnchorManager spatialAnchorManager;
 
-    public List<string> createdAnchorIDs = new List<String>();
+    // A list of all created spatial anchor IDs
+    private List<string> createdAnchorIDs = new List<String>();
 
-    public List<GameObject> anchorGameObjects = new List<GameObject>();
+    // A list of all created/located spatial anchor representative game objects
+    private List<GameObject> anchorGameObjects = new List<GameObject>();
 
+    // The parent of the debug object hierarchy
     public GameObject debugObjects;
 
+    // The text object representing the debug log in the scene
     public TextMeshProUGUI debugLog;
 
+    // Used to toggle displaying debug information
     public bool debugIsOn;
 
     #endregion
@@ -403,7 +408,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         anchorTransform = pointA.transform;
     }
 
-    // TODO not implemented
+    // Returns the anchorTransform for this client, null if it does not exist
     public Transform GetAnchorTransform()
     {
         if (anchorTransform != null)
@@ -416,6 +421,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
     }
 
+    // Returns this client's x, y, z axes unit vectors as a list
     public List<Vector3> GetAxes()
     {
         return axes;
