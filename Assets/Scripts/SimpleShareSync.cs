@@ -1,10 +1,10 @@
 using Photon.Pun;
-using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 using TMPro;
-using UnityEngine.InputSystem.Android;
 
 [RequireComponent(typeof(PhotonView))]
 public class SimpleShareSync : MonoBehaviour, IPunObservable
@@ -23,18 +23,17 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
 
         if (stream.IsWriting)
         {
-            debugLog.text = "stream.IsWriting";
-
             Vector3 deltaPosition = anchorTransform.position - gameObject.transform.position;
             Quaternion deltaRotation = Quaternion.Inverse(gameObject.transform.rotation) * anchorTransform.rotation;
+
+            debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n"; 
+            debugLog.text += "gameObject.transform.position = (" + gameObject.transform.position.x + ", " + gameObject.transform.position.y + ", " + gameObject.transform.position.z + ")\n"; 
 
             stream.SendNext(deltaPosition);
             stream.SendNext(deltaRotation);
         }
         else
         {
-            debugLog.text = "stream.IsReading";
-
             Vector3 deltaPosition = (Vector3)stream.ReceiveNext();
             Quaternion deltaRotation = (Quaternion)stream.ReceiveNext();
 
@@ -49,6 +48,18 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
             Vector3 deltaX = scalarX * axes[0];
             Vector3 deltaY = scalarY * axes[1];
             Vector3 deltaZ = scalarZ * axes[2];
+
+            /*
+            debugLog.text = "scalarX = " + scalarX + "\n";
+            debugLog.text += "scalarY = " + scalarY + "\n";
+            debugLog.text += "scalarZ = " + scalarZ + "\n";
+
+            debugLog.text += "axes[0] = " + axes[0] + "\n";
+            debugLog.text += "axes[1] = " + axes[1] + "\n";
+            debugLog.text += "axes[2] = " + axes[2] + "\n";
+
+            debugLog.text += "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n";
+            */
 
             // Apply the movement to the object in the secondary client's coordinate system
             gameObject.transform.position = anchorTransform.position + deltaX + deltaY + deltaZ;

@@ -28,7 +28,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     private Transform anchorTransform;
 
     // This client's right, up, and forward vectors (wrt to master client)
-    private List<Vector3> axes;
+    private List<Vector3> axes = new List<Vector3>();
 
     // ASA's SpatialAnchorManager component
     public SpatialAnchorManager spatialAnchorManager;
@@ -48,6 +48,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Used to toggle displaying debug information
     public bool debugIsOn;
 
+    private bool triangleCreated;
+
     #endregion
 
     #region Unity Callbacks
@@ -64,6 +66,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         // Toggle debug mode off initially
         debugIsOn = false;
 
+        triangleCreated = false;
+
         // Subscribe to spatial anchor location callbacks
         spatialAnchorManager.AnchorLocated += SpatialAnchorManager_AnchorLocated;
 
@@ -73,9 +77,13 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     public void Update()
     {
-        // TODO Update this client's shared object positions
-
-        // TODO Update this client's shared object states?
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            if (anchorGameObjects.Count > 2 && !triangleCreated)
+            {
+                CreateTriangle();
+            }
+        }
     }
 
     #endregion
@@ -134,11 +142,6 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     public override void OnJoinedRoom()
     {
         debugLog.text += "OnJoinedRoom() was called.\n";
-
-        if (PhotonNetwork.IsMasterClient)
-        {
-            CreateAnchors();
-        }
     }
 
     #endregion
@@ -172,11 +175,6 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
                 anchorGameObjects.Add(anchorGameObject);
             });
         }
-
-        if (anchorGameObjects.Count > 2)
-        {
-            CreateTriangle();
-        }
     }
 
     #endregion
@@ -203,10 +201,13 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // system between the clients
     public async void CreateAnchors()
     {
-        await spatialAnchorManager.StartSessionAsync();
-        await CreateAnchor(Vector3.zero, Quaternion.identity);                  // Point A
-        await CreateAnchor(new Vector3(0.0f, 0.3f, 0.0f), Quaternion.identity); // Point B
-        await CreateAnchor(new Vector3(0.4f, 0.0f, 0.0f), Quaternion.identity); // Point C
+        if (PhotonNetwork.IsMasterClient)
+        {
+            await spatialAnchorManager.StartSessionAsync();
+            await CreateAnchor(Vector3.zero, Quaternion.identity);                  // Point A
+            await CreateAnchor(new Vector3(0.0f, 0.3f, 0.0f), Quaternion.identity); // Point B
+            await CreateAnchor(new Vector3(0.4f, 0.0f, 0.0f), Quaternion.identity); // Point C
+        }
     }
 
     private async Task CreateAnchor(Vector3 position, Quaternion rotation)
@@ -260,8 +261,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
             anchorGameObjects.Add(anchorGameObject);
 
             // Tell the secondary client about the new spatial anchor
-            debugLog.text += "Calling SetAnchorID() on secondary client...\n";
-            PhotonView.Get(this).RPC("SetAnchorID", RpcTarget.Others, createdAnchorIDs[0]);
+            debugLog.text += "Setting ID: " + cloudSpatialAnchor.Identifier + "\n";
+            PhotonView.Get(this).RPC("SetAnchorID", RpcTarget.Others, cloudSpatialAnchor.Identifier);
         }
         catch (Exception exception)
         {
@@ -274,7 +275,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     [PunRPC]
     public void SetAnchorID(string ID)
     {
-        debugLog.text += "SetAnchorID() was called.\n";
+        debugLog.text += "Setting ID: " + ID + "\n";
 
         createdAnchorIDs.Add(ID);
 
@@ -305,6 +306,9 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
 
     private void CreateTriangle()
     {
+        debugLog.text += "CreateTriangle() was called.\n";
+        triangleCreated = true;
+
         if (anchorGameObjects.Count != 3)
         {
             debugLog.text += "Error: 3 spatial anchors not found.\n";
@@ -322,9 +326,9 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         float distanceEF = Vector3.Distance(pointE.transform.position, pointF.transform.position);
 
         // Names for points on reference trangles
-        GameObject pointA = null;  //      B
-        GameObject pointB = null;  //      | \
-        GameObject pointC = null;  //      A - C
+        GameObject pointA = new GameObject();  //      B
+        GameObject pointB = new GameObject();  //      | \
+        GameObject pointC = new GameObject();  //      A - C
 
         // Determine which spatial anchor represents which point on the reference triangle
         if (distanceDE > distanceDF)
@@ -393,15 +397,18 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
 
         // Determine unit vectors of each shared axis using reference triangle
-        Vector3 unitYAxis = Vector3.Normalize(pointB.transform.position - pointA.transform.position);
-        Vector3 unitXAxis = Vector3.Normalize(pointC.transform.position - pointA.transform.position);
+        Vector3 unitXAxis = Vector3.Normalize(pointA.transform.position - pointC.transform.position);
+        Vector3 unitYAxis = Vector3.Normalize(pointA.transform.position - pointB.transform.position);
         Vector3 unitZAxis = Vector3.Cross(unitYAxis, unitXAxis);
 
         // Package the axes into a list for future use
-        List<Vector3> axes = new List<Vector3>();
         axes.Add(unitXAxis);
         axes.Add(unitYAxis);
         axes.Add(unitZAxis);
+
+        debugLog.text = "X-axis unit vector: (" + axes[0].x + ", " + axes[0].y + ", " + axes[0].z + ")\n";
+        debugLog.text += "Y-axis unit vector: (" + axes[1].x + ", " + axes[1].y + ", " + axes[1].z + ")\n";
+        debugLog.text += "Z-axis unit vector: (" + axes[2].x + ", " + axes[2].y + ", " + axes[2].z + ")\n";
 
         // Save the transform of pointA as the main anchor transform
         // This point is equivalent to the origin on the master client's coordinate system
@@ -417,6 +424,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
         else
         {
+            debugLog.text += "Oops";
             return null;
         }
     }
@@ -424,7 +432,15 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Returns this client's x, y, z axes unit vectors as a list
     public List<Vector3> GetAxes()
     {
-        return axes;
+        if (axes != null)
+        {
+            return axes;
+        }
+        else
+        {
+            debugLog.text += "Whoopsie";
+            return null;
+        }
     }
 
     #endregion
