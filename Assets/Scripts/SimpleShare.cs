@@ -203,10 +203,18 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            await spatialAnchorManager.StartSessionAsync();
-            await CreateAnchor(Vector3.zero, Quaternion.identity);                  // Point A
-            await CreateAnchor(new Vector3(0.0f, 0.3f, 0.0f), Quaternion.identity); // Point B
-            await CreateAnchor(new Vector3(0.4f, 0.0f, 0.0f), Quaternion.identity); // Point C
+            if (createdAnchorIDs.Count < 3)
+            {
+                await spatialAnchorManager.StartSessionAsync();
+                await CreateAnchor(Vector3.zero, Quaternion.identity);                  // Point A
+                await CreateAnchor(new Vector3(0.0f, 0.3f, 0.0f), Quaternion.identity); // Point B
+                await CreateAnchor(new Vector3(0.4f, 0.0f, 0.0f), Quaternion.identity); // Point C
+            }
+            else
+            {
+                debugLog.text += "Resending anchor IDs to secondary client...\n";
+                PhotonView.Get(this).RPC("ResetAnchorIDs", RpcTarget.Others, createdAnchorIDs[0], createdAnchorIDs[1], createdAnchorIDs[2]);
+            }
         }
     }
 
@@ -283,6 +291,21 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         LocateAnchors();
     }
 
+    [PunRPC]
+    public void ResetAnchorIDs(string ID0, string ID1, string ID2)
+    {
+        debugLog.text += "Attempting to locate anchors again...\n";
+
+        spatialAnchorManager.DestroySession();
+
+        createdAnchorIDs.Clear();
+        createdAnchorIDs.Add(ID0);
+        createdAnchorIDs.Add(ID1);
+        createdAnchorIDs.Add(ID2);
+
+        LocateAnchors();
+    }
+
     // Find the 3 spatial anchors on the secondary client
     private async void LocateAnchors()
     {
@@ -300,6 +323,11 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         // Create watcher for all 3 anchor IDs passed from the master client
         AnchorLocateCriteria anchorLocateCriteria = new AnchorLocateCriteria();
         anchorLocateCriteria.Identifiers = createdAnchorIDs.ToArray();
+
+        debugLog.text += "anchorLocateCriteria.Identifiers[0] = " + anchorLocateCriteria.Identifiers[0];
+        debugLog.text += "anchorLocateCriteria.Identifiers[1] = " + anchorLocateCriteria.Identifiers[1];
+        debugLog.text += "anchorLocateCriteria.Identifiers[2] = " + anchorLocateCriteria.Identifiers[2];
+
         CloudSpatialAnchorWatcher watcher = spatialAnchorManager.Session.CreateWatcher(anchorLocateCriteria);
 
         debugLog.text += "Watching for anchors...\n";

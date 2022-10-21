@@ -24,7 +24,7 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         if (stream.IsWriting)
         {
             Vector3 deltaPosition = anchorTransform.position - gameObject.transform.position;
-            Quaternion deltaRotation = Quaternion.Inverse(gameObject.transform.rotation) * anchorTransform.rotation;
+            Quaternion deltaRotation = gameObject.transform.rotation * Quaternion.Inverse(anchorTransform.rotation);
 
             //debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n"; 
             //debugLog.text += "gameObject.transform.position = (" + gameObject.transform.position.x + ", " + gameObject.transform.position.y + ", " + gameObject.transform.position.z + ")\n"; 
@@ -95,6 +95,19 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         {
             gameObject.transform.position = anchorTransform.position;
             gameObject.transform.rotation = anchorTransform.rotation;
+        }
+    }
+
+    public void TakeOwnership()
+    {
+        if (!photonView.IsMine)
+        {
+            photonView.TransferOwnership(PhotonNetwork.LocalPlayer);
+
+            if (photonView.IsMine)
+            {
+                debugLog.text += "Ownership taken succesfully.\n";
+            }
         }
     }
 }
