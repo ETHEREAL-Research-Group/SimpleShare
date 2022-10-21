@@ -217,6 +217,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         // Create a game object to represent the anchor
         GameObject anchorGameObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
         anchorGameObject.GetComponent<MeshRenderer>().material.shader = Shader.Find("Legacy Shaders/Diffuse");
+        anchorGameObject.GetComponent<MeshRenderer>().material.color = Color.blue;
         anchorGameObject.transform.position = position;
         anchorGameObject.transform.rotation = rotation;
         anchorGameObject.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
@@ -406,9 +407,9 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         axes.Add(unitYAxis);
         axes.Add(unitZAxis);
 
-        debugLog.text = "X-axis unit vector: (" + axes[0].x + ", " + axes[0].y + ", " + axes[0].z + ")\n";
-        debugLog.text += "Y-axis unit vector: (" + axes[1].x + ", " + axes[1].y + ", " + axes[1].z + ")\n";
-        debugLog.text += "Z-axis unit vector: (" + axes[2].x + ", " + axes[2].y + ", " + axes[2].z + ")\n";
+        //debugLog.text = "X-axis unit vector: (" + axes[0].x + ", " + axes[0].y + ", " + axes[0].z + ")\n";
+        //debugLog.text += "Y-axis unit vector: (" + axes[1].x + ", " + axes[1].y + ", " + axes[1].z + ")\n";
+        //debugLog.text += "Z-axis unit vector: (" + axes[2].x + ", " + axes[2].y + ", " + axes[2].z + ")\n";
 
         // Save the transform of pointA as the main anchor transform
         // This point is equivalent to the origin on the master client's coordinate system
@@ -424,7 +425,6 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
         else
         {
-            debugLog.text += "Oops";
             return null;
         }
     }
@@ -438,7 +438,6 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
         else
         {
-            debugLog.text += "Whoopsie";
             return null;
         }
     }

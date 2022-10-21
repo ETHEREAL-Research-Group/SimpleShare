@@ -26,8 +26,8 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
             Vector3 deltaPosition = anchorTransform.position - gameObject.transform.position;
             Quaternion deltaRotation = Quaternion.Inverse(gameObject.transform.rotation) * anchorTransform.rotation;
 
-            debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n"; 
-            debugLog.text += "gameObject.transform.position = (" + gameObject.transform.position.x + ", " + gameObject.transform.position.y + ", " + gameObject.transform.position.z + ")\n"; 
+            //debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n"; 
+            //debugLog.text += "gameObject.transform.position = (" + gameObject.transform.position.x + ", " + gameObject.transform.position.y + ", " + gameObject.transform.position.z + ")\n"; 
 
             stream.SendNext(deltaPosition);
             stream.SendNext(deltaRotation);
