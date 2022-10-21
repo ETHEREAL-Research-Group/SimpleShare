@@ -443,5 +443,18 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
     }
 
+    public void ResetObjects()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            SimpleShareSync[] syncs = FindObjectsOfType(typeof(SimpleShareSync)) as SimpleShareSync[];
+
+            for (int i = 0; i < syncs.Length; i++)
+            {
+                syncs[i].ResetPosition();
+            }
+        }
+    }
+
     #endregion
 }

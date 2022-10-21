@@ -83,4 +83,18 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
             simpleShare = GameObject.FindWithTag("SimpleShare").GetComponent<SimpleShare>();
         }
     }
+
+    public void ResetPosition()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            gameObject.transform.position = Vector3.zero;
+            gameObject.transform.rotation = Quaternion.identity;
+        }
+        else
+        {
+            gameObject.transform.position = anchorTransform.position;
+            gameObject.transform.rotation = anchorTransform.rotation;
+        }
+    }
 }
