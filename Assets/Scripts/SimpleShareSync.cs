@@ -9,14 +9,25 @@ using TMPro;
 [RequireComponent(typeof(PhotonView))]
 public class SimpleShareSync : MonoBehaviour, IPunObservable
 {
+    #region Fields
+
+    // Tracks the PhotonView component on this synchronized object
     private PhotonView photonView;
 
+    // The master SimpleShare script in the scene
     private SimpleShare simpleShare;
 
+    // The shared anchor transform (origin)
     private Transform anchorTransform;
 
+    // Used to print debug messages for the HoloLens2 headset
     public TextMeshProUGUI debugLog;
 
+    #endregion
+
+    #region IPunObservable Callbacks
+
+    // Sends transform data about this synchronized object to other clients on the network
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
         anchorTransform = simpleShare.GetAnchorTransform();
@@ -24,12 +35,25 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         if (stream.IsWriting)
         {
             Vector3 deltaPosition = anchorTransform.position - gameObject.transform.position;
-            Quaternion deltaRotation = gameObject.transform.rotation * Quaternion.Inverse(anchorTransform.rotation);
+            Quaternion deltaRotation = Quaternion.Inverse(anchorTransform.rotation) * gameObject.transform.rotation;
 
-            //debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n"; 
+            float scalarX = deltaPosition.x;
+            float scalarY = deltaPosition.y;
+            float scalarZ = deltaPosition.z;
+
+            List<Vector3> axes = simpleShare.GetAxes();
+            Vector3 deltaX = scalarX * axes[0];
+            Vector3 deltaY = scalarY * axes[1];
+            Vector3 deltaZ = scalarZ * axes[2];
+            Vector3 totalDelta = deltaX + deltaY + deltaZ;
+
+            debugLog.text = "anchorTransform.position = (" + anchorTransform.position.x + ", " + anchorTransform.position.y + ", " + anchorTransform.position.z + ")\n";
+            debugLog.text += "axes[0] = (" + axes[0].x + ", " + axes[0].y + ", " + axes[0].z + ")\n";
+            debugLog.text += "axes[1] = (" + axes[1].x + ", " + axes[1].y + ", " + axes[1].z + ")\n";
+            debugLog.text += "axes[2] = (" + axes[2].x + ", " + axes[2].y + ", " + axes[2].z + ")\n";
             //debugLog.text += "gameObject.transform.position = (" + gameObject.transform.position.x + ", " + gameObject.transform.position.y + ", " + gameObject.transform.position.z + ")\n"; 
 
-            stream.SendNext(deltaPosition);
+            stream.SendNext(totalDelta);
             stream.SendNext(deltaRotation);
         }
         else
@@ -67,6 +91,10 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         }
     }
 
+    #endregion
+
+    #region Unity Callbacks
+
     // Start is called before the first frame update
     void Start()
     {
@@ -84,6 +112,11 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         }
     }
 
+    #endregion
+
+    #region Methods
+
+    // Resets the position of this synchronized object to the shared anchor position
     public void ResetPosition()
     {
         if (PhotonNetwork.IsMasterClient)
@@ -98,6 +131,8 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
         }
     }
 
+    // If this client is attempting to move a synchronized object and is not it's owner,
+    // then take ownership of the object
     public void TakeOwnership()
     {
         if (!photonView.IsMine)
@@ -110,4 +145,6 @@ public class SimpleShareSync : MonoBehaviour, IPunObservable
             }
         }
     }
+
+    #endregion
 }

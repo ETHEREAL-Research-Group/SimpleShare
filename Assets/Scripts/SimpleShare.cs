@@ -53,12 +53,14 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     #endregion
 
     #region Unity Callbacks
-
+    
+    // Called when scene first starts
     public void Awake()
     {
         PhotonNetwork.AutomaticallySyncScene = true;
     }
 
+    // Called when object is initiated after scene starts
     public void Start()
     {
         debugLog.text += "Start() was called.\n";
@@ -75,6 +77,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         CoreServices.InputSystem?.RegisterHandler<IMixedRealitySpeechHandler>(this);
     }
 
+    // Called every frame
     public void Update()
     {
         if (!PhotonNetwork.IsMasterClient)
@@ -126,8 +129,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
     // Called when this client disconnects from PUN
     public override void OnDisconnected(DisconnectCause cause)
     {
-        debugLog.text += "OnDisconnected() was called.\n";
-        // Play sound?
+        debugLog.text += "OnDisconnected() was called; cause: " + cause.ToString() + "\n";
     }
 
     // Called when this client fails to join a random room (i.e. room has not been created yet)
@@ -209,6 +211,10 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
                 await CreateAnchor(Vector3.zero, Quaternion.identity);                  // Point A
                 await CreateAnchor(new Vector3(0.0f, 0.3f, 0.0f), Quaternion.identity); // Point B
                 await CreateAnchor(new Vector3(0.4f, 0.0f, 0.0f), Quaternion.identity); // Point C
+
+                axes.Add(new Vector3(1.0f, 0, 0));
+                axes.Add(new Vector3(0, 1.0f, 0));
+                axes.Add(new Vector3(0, 0, 1.0f));
             }
             else
             {
@@ -291,6 +297,7 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         LocateAnchors();
     }
 
+    // Resends all the spatial anchor ideas to all secondary clients
     [PunRPC]
     public void ResetAnchorIDs(string ID0, string ID1, string ID2)
     {
@@ -324,9 +331,9 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         AnchorLocateCriteria anchorLocateCriteria = new AnchorLocateCriteria();
         anchorLocateCriteria.Identifiers = createdAnchorIDs.ToArray();
 
-        debugLog.text += "anchorLocateCriteria.Identifiers[0] = " + anchorLocateCriteria.Identifiers[0];
-        debugLog.text += "anchorLocateCriteria.Identifiers[1] = " + anchorLocateCriteria.Identifiers[1];
-        debugLog.text += "anchorLocateCriteria.Identifiers[2] = " + anchorLocateCriteria.Identifiers[2];
+        debugLog.text += "anchorLocateCriteria.Identifiers[0] = " + anchorLocateCriteria.Identifiers[0] + "\n";
+        debugLog.text += "anchorLocateCriteria.Identifiers[1] = " + anchorLocateCriteria.Identifiers[1] + "\n";
+        debugLog.text += "anchorLocateCriteria.Identifiers[2] = " + anchorLocateCriteria.Identifiers[2] + "\n";
 
         CloudSpatialAnchorWatcher watcher = spatialAnchorManager.Session.CreateWatcher(anchorLocateCriteria);
 
@@ -470,6 +477,8 @@ public class SimpleShare : MonoBehaviourPunCallbacks, IMixedRealitySpeechHandler
         }
     }
 
+    // Find all synchronized objects in the scene and resets their position to the shared
+    // anchor position for all clients
     public void ResetObjects()
     {
         if (PhotonNetwork.IsMasterClient)
