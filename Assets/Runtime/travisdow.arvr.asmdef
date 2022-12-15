@@ -1,0 +1,25 @@
+{
+    "name": "travisdow.arvr",
+    "rootNamespace": "",
+    "references": [
+        "Unity.XR.ARFoundation",
+        "PhotonUnityNetworking",
+        "PhotonRealtime",
+        "AzureSpatialAnchors.SDK.Windows.Runtime",
+        "AzureSpatialAnchors.SDK.Core.Runtime",
+        "Microsoft.MixedReality.Toolkit",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "WSA"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
